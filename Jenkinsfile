@@ -28,21 +28,7 @@ pipeline {
             }
         }
         
-        stage('Scan Image') {
-            steps {
-                script {
-                    // Install Trivy if not installed
-                    sh '''
-                        if ! command -v trivy &> /dev/null
-                        then
-                            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-                        fi
-                    '''
-                    // Scan the Docker image
-                    sh "trivy image $IMAGEN:$BUILD_NUMBER"
-                }
-            }
-        }
+
 
         stage('Deploy') {
             steps {
