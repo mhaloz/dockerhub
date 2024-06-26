@@ -1,66 +1,46 @@
 pipeline {
     environment {
-        imagename = "mhaloz785/docker"
-        dockerImage = ''
-        containerName = 'my-container'
-        dockerHubCredentials = 'admin'
-        dockerImageTag = "${imagename}:${env.BUILD_NUMBER}"
+        IMAGEN = "mhaloz785/docker"
+        USUARIO = 'USER_DOCKERHUB'
     }
-
     agent any
-
     stages {
-        stage('Cloning Git') {
+        stage('Clone') {
             steps {
-                git(url: 'https://github.com/mhaloz/dockerhub', branch: 'main')
+                git branch: "main", url: 'https://github.com/josedom24/jenkins_docker.git'
             }
         }
-
-        stage('Building image') {
+        stage('Build') {
             steps {
                 script {
-                    dockerImageTag = "${imagename}:${env.BUILD_NUMBER}"
-                    dockerImage = docker.build dockerImageTag
+                    newApp = docker.build "$IMAGEN:$BUILD_NUMBER"
                 }
             }
         }
 
-        stage('Running image') {
+        stage('Test') {
             steps {
                 script {
-                    sh "docker run -d --name ${containerName} ${dockerImageTag}"
-                    // Perform any additional steps needed while the container is running
-                }
+                    docker.image("$IMAGEN:$BUILD_NUMBER").inside('-u root') {
+                           sh 'apache2ctl -v'
+                        }
+                    }
             }
         }
-
-        stage('Stop and Remove Container') {
+        
+        stage('Deploy') {
             steps {
                 script {
-                    sh "docker stop ${containerName} || true"
-                    sh "docker rm ${containerName} || true"
-                }
-            }
-        }
-
-        stage('Deploy Image') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: dockerHubCredentials, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
-                        sh "docker push ${dockerImageTag}"
+                    docker.withRegistry( '', USUARIO ) {
+                        newApp.push()
                     }
                 }
             }
         }
-
-        stage('Trigger ManifestUpdate') {
+        stage('Clean Up') {
             steps {
-                echo "Triggering updatemanifestjob"
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+                sh "docker rmi $IMAGEN:$BUILD_NUMBER"
                 }
-            }
         }
     }
 }
