@@ -37,6 +37,12 @@ pipeline {
                 }
             }
         }
+
+        stage('Clean Up') {
+            steps {
+                sh "docker rmi $IMAGEN:$BUILD_NUMBER"
+                }
+        }
         
     }
 }
