@@ -28,33 +28,6 @@ pipeline {
             }
         }
 
-        stage('Scan Image') {
-            steps {
-                script {
-                    // Check if curl and tar are installed
-                    sh '''
-                        if ! command -v curl &> /dev/null; then
-                            echo "curl could not be found"
-                            exit 1
-                        fi
-
-                        if ! command -v tar &> /dev/null; then
-                            echo "tar could not be found"
-                            exit 1
-                        fi
-                    '''
-                    // Install Trivy if not installed
-                    sh '''
-                        if ! command -v trivy &> /dev/null; then
-                            echo "Installing Trivy..."
-                            curl -sSL https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.41.0_Linux-64bit.tar.gz | tar zxvf - -C /usr/local/bin/
-                        fi
-                    '''
-                    // Scan the Docker image
-                    sh "trivy image ${IMAGEN}:${BUILD_NUMBER}"
-                }
-            }
-        }
 
         stage('Deploy') {
             steps {
